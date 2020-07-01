@@ -1,0 +1,34 @@
+[
+{
+  "model": "courses.subject",
+  "pk": 1,
+  "fields": {
+    "title": "\u0420\u0430\u0441\u0442\u044f\u0436\u043a\u0430",
+    "slug": "rastyazhka"
+  }
+},
+{
+  "model": "courses.subject",
+  "pk": 2,
+  "fields": {
+    "title": "\u0411\u0430\u043d\u043e\u0447\u043d\u044b\u0439 \u041c\u0430\u0441\u0441\u0430\u0436",
+    "slug": "banochnyj-massazh"
+  }
+},
+{
+  "model": "courses.subject",
+  "pk": 3,
+  "fields": {
+    "title": "\u041c\u0430\u0441\u0441\u044f\u0436 \u041b\u0438\u0446\u0430",
+    "slug": "massyazh-lica"
+  }
+},
+{
+  "model": "courses.subject",
+  "pk": 4,
+  "fields": {
+    "title": "\u041a\u0443\u0440\u0441 \u043f\u043e \u0430\u043d\u0430\u0442\u043e\u043c\u0438\u0438 \u043b\u0438\u0446\u0430",
+    "slug": "kurs-po-anatomii-lica"
+  }
+}
+]
