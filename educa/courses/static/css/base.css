@@ -23,14 +23,10 @@ h1, h2, h3, h4, h5, h6 {
 
 h1 {
     background:#efefef;
+    width:100%;
     overflow:auto;
-    padding:20px;
+    padding:20px 0 20px 40px;
     margin:0;
-}
-
-.container {
-    max-width: 920px;
-    margin: 0 auto;
 }
 
 .module {
@@ -310,8 +306,4 @@ ul#course-modules li:hover {
     margin-right:2%;
     padding-left:0;
     padding-right:0;
-}
-input[type="checkbox"] {
-    width: auto;
-    margin-bottom: 10px;
 }

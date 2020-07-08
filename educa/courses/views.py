@@ -1,23 +1,21 @@
-from django.shortcuts import render
-from django.views.generic.list import ListView
+from django.urls import reverse_lazy
 from django.shortcuts import redirect, get_object_or_404
 from django.views.generic.base import TemplateResponseMixin, View
-from .forms import ModuleFormSet
-from django.urls import reverse_lazy
 from django.views.generic.list import ListView
 from django.views.generic.edit import CreateView, UpdateView, \
-    DeleteView
-from .models import Course
+                                      DeleteView
+from django.views.generic.detail import DetailView
 from django.contrib.auth.mixins import LoginRequiredMixin, \
-    PermissionRequiredMixin
+                                       PermissionRequiredMixin
 from django.forms.models import modelform_factory
 from django.apps import apps
-from .models import Module, Content
-from braces.views import CsrfExemptMixin, JsonRequestResponseMixin
 from django.db.models import Count
-from .models import Subject
-from django.views.generic.detail import DetailView
+from django.core.cache import cache
+from braces.views import CsrfExemptMixin, JsonRequestResponseMixin
 from students.forms import CourseEnrollForm
+from .models import Course, Module, Content, Subject
+from .forms import ModuleFormSet
+
 
 class OwnerMixin(object):
     def get_queryset(self):
@@ -46,7 +44,6 @@ class OwnerCourseEditMixin(OwnerCourseMixin, OwnerEditMixin):
 class ManageCourseListView(OwnerCourseMixin, ListView):
     template_name = 'courses/manage/course/list.html'
     permission_required = 'courses.view_course'
-
 
 class CourseCreateView(OwnerCourseEditMixin, CreateView):
     permission_required = 'courses.add_course'
@@ -106,13 +103,12 @@ class ContentCreateUpdateView(TemplateResponseMixin, View):
                                                  'order',
                                                  'created',
                                                  'updated'])
-
         return Form(*args, **kwargs)
 
     def dispatch(self, request, module_id, model_name, id=None):
         self.module = get_object_or_404(Module,
-                                        id=module_id,
-                                        course__owner=request.user)
+                                       id=module_id,
+                                       course__owner=request.user)
         self.model = self.get_model(model_name)
         if id:
             self.obj = get_object_or_404(self.model,
@@ -130,7 +126,6 @@ class ContentCreateUpdateView(TemplateResponseMixin, View):
                              instance=self.obj,
                              data=request.POST,
                              files=request.FILES)
-
         if form.is_valid():
             obj = form.save(commit=False)
             obj.owner = request.user
@@ -140,6 +135,7 @@ class ContentCreateUpdateView(TemplateResponseMixin, View):
                 Content.objects.create(module=self.module,
                                        item=obj)
             return redirect('module_content_list', self.module.id)
+
         return self.render_to_response({'form': form,
                                         'object': self.obj})
 
@@ -162,6 +158,7 @@ class ModuleContentListView(TemplateResponseMixin, View):
         module = get_object_or_404(Module,
                                    id=module_id,
                                    course__owner=request.user)
+
         return self.render_to_response({'module': module})
 
 
@@ -171,17 +168,7 @@ class ModuleOrderView(CsrfExemptMixin,
     def post(self, request):
         for id, order in self.request_json.items():
             Module.objects.filter(id=id,
-                                  course__owner=request.user).update(order=order)
-        return self.render_json_response({'saved': 'OK'})
-
-
-class ModuleOrderView(CsrfExemptMixin,
-                      JsonRequestResponseMixin,
-                      View):
-    def post(self, request):
-        for id, order in self.request_json.items():
-            Module.objects.filter(id=id,
-                                  course__owner=request.user).update(order=order)
+                   course__owner=request.user).update(order=order)
         return self.render_json_response({'saved': 'OK'})
 
 
@@ -191,8 +178,8 @@ class ContentOrderView(CsrfExemptMixin,
     def post(self, request):
         for id, order in self.request_json.items():
             Content.objects.filter(id=id,
-                                   module__course__owner=request.user) \
-                .update(order=order)
+                       module__course__owner=request.user) \
+                       .update(order=order)
         return self.render_json_response({'saved': 'OK'})
 
 
@@ -201,14 +188,25 @@ class CourseListView(TemplateResponseMixin, View):
     template_name = 'courses/course/list.html'
 
     def get(self, request, subject=None):
-        subjects = Subject.objects.annotate(
-            total_courses=Count('courses'))
-
-        courses = Course.objects.annotate(
-            total_modules=Count('modules'))
+        subjects = cache.get('all_subjects')
+        if not subjects:
+            subjects = Subject.objects.annotate(
+                            total_courses=Count('courses'))
+            cache.set('all_subjects', subjects)
+        all_courses = Course.objects.annotate(
+                           total_modules=Count('modules'))
         if subject:
             subject = get_object_or_404(Subject, slug=subject)
-            courses = courses.filter(subject=subject)
+            key = f'subject_{subject.id}_courses'
+            courses = cache.get(key)
+            if not courses:
+                courses = all_courses.filter(subject=subject)
+                cache.set(key, courses)
+        else:
+            courses = cache.get('all_courses')
+            if not courses:
+                courses = all_courses
+                cache.set('all_courses', courses)
         return self.render_to_response({'subjects': subjects,
                                         'subject': subject,
                                         'courses': courses})
@@ -221,5 +219,5 @@ class CourseDetailView(DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['enroll_form'] = CourseEnrollForm(
-            initial={'course': self.object})
+                                   initial={'course':self.object})
         return context

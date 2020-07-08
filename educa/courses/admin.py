@@ -1,8 +1,11 @@
 from django.contrib import admin
 from .models import Subject, Course, Module
+from django.contrib import admin
+
+# use memcache admin index site
+admin.site.index_template = 'memcache_status/admin_index.html'
 
 
-# Register your models here.
 @admin.register(Subject)
 class SubjectAdmin(admin.ModelAdmin):
     list_display = ['title', 'slug']
